@@ -1,0 +1,28 @@
+name: Build Bootstrap
+on: 
+  workflow_dispatch: # This adds the "Run" button to your Actions tab
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Theos
+        run: |
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+
+      - name: Build TIPA
+        run: |
+          export THEOS=~/theos
+          make package
+        
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bootstrap-TIPA
+          path: packages/*.tipa
