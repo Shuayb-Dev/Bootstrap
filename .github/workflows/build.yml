@@ -1,28 +1,34 @@
-name: Build Bootstrap
+name: Build RootHide Bootstrap
 on: 
-  workflow_dispatch: # This adds the "Run" button to your Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: recursive #
 
-      - name: Setup Theos
+      - name: Install Theos and SDKs
         run: |
+          # Install Theos with RootHide support
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
-          echo "THEOS=~/theos" >> $GITHUB_ENV
+          
+          # Download a standard iOS SDK needed for building
+          curl -L https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz -o $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz
+          tar -xf $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz -C $HOME/theos/sdks/
+          
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
-      - name: Build TIPA
+      - name: Compile Bootstrap
         run: |
-          export THEOS=~/theos
-          make package
+          export THEOS=$HOME/theos
+          make package FINALPACKAGE=1 #
         
-      - name: Upload Artifact
+      - name: Save Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Bootstrap-TIPA
+          name: Bootstrap-Build
           path: packages/*.tipa
