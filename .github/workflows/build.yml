@@ -4,31 +4,45 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13  # Specific version for better Xcode stability
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           submodules: recursive #
 
-      - name: Install Theos and SDKs
+      - name: Setup Theos & SDK
         run: |
-          # Install Theos with RootHide support
+          # Install the specific RootHide Theos
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
           
-          # Download a standard iOS SDK needed for building
+          # Download the iOS 16.5 SDK (Required for compilation)
           curl -L https://github.com/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz -o $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz
           tar -xf $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz -C $HOME/theos/sdks/
           
+          # Set Environment Variable for the rest of this step
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
-      - name: Compile Bootstrap
+      - name: Build Basebin (The Core)
         run: |
           export THEOS=$HOME/theos
-          make package FINALPACKAGE=1 #
+          # This is the step most people miss
+          cd basebin
+          chmod +x ./build.sh
+          ./build.sh
+          cd ..
+          
+          # Move basebin files into the main project folder
+          mkdir -p Bootstrap/basebin
+          cp -a basebin/.build/* Bootstrap/basebin/
+
+      - name: Compile Final Package
+        run: |
+          export THEOS=$HOME/theos
+          make package FINALPACKAGE=1
         
-      - name: Save Artifact
+      - name: Upload TIPA
         uses: actions/upload-artifact@v4
         with:
-          name: Bootstrap-Build
+          name: RootHide-Bootstrap
           path: packages/*.tipa
